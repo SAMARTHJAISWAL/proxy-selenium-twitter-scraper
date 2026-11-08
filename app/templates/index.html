@@ -1,52 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-   <title>Twitter Trends Scraper</title>
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-   <style>
-       body { 
-           font-family: Arial, sans-serif; 
-           margin: 20px;
-           max-width: 800px;
-           margin: 0 auto;
-           padding: 20px;
-       }
-       button {
-           padding: 10px 20px;
-           background-color: #1DA1F2;
-           color: white;
-           border: none;
-           border-radius: 5px;
-           cursor: pointer;
-       }
-       #results { margin-top: 20px; }
-       pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
-   </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Twitter Trends Scraper</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    button { padding: 10px 20px; background-color: #1DA1F2; color: white; border: none;
+             border-radius: 5px; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    #results { margin-top: 20px; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    .error { color: #b00020; }
+  </style>
 </head>
 <body>
-   <button onclick="runScraper()">Click here to run the script</button>
-   <div id="results"></div>
+  <button id="run">Click here to run the script</button>
+  <div id="results"></div>
 
-   <script>
-       function runScraper() {
-           $.get('/scrape', function(data) {
-               let dateTime = new Date(data.datetime).toLocaleString();
-               let html = `
-                   <h3>These are the most happening topics as on ${dateTime}</h3>
-                   <ul>
-                       <li>${data.nameoftrend1}</li>
-                       <li>${data.nameoftrend2}</li>
-                       <li>${data.nameoftrend3}</li>
-                       <li>${data.nameoftrend4}</li>
-                       <li>${data.nameoftrend5}</li>
-                   </ul>
-                   <p>The IP address used for this query was ${data.ip_address}</p>
-                   <p>Here's a JSON extract of this record from MongoDB:</p>
-                   <pre>${JSON.stringify(data, null, 2)}</pre>
-               `;
-               $('#results').html(html);
-           });
-       }
-   </script>
+  <template id="result-tpl">
+    <h3>These are the most happening topics as on <span data-f="when"></span></h3>
+    <ul data-f="list"></ul>
+    <p>The IP address used for this query was <span data-f="ip"></span></p>
+    <p>Here's a JSON extract of this record from MongoDB:</p>
+    <pre data-f="json"></pre>
+  </template>
+
+  <script>
+    const btn = document.getElementById("run");
+    const results = document.getElementById("results");
+
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      results.textContent = "Running the scraper (this opens a browser and can take a minute)...";
+      try {
+        const res = await fetch("/scrape");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.statusText);
+
+        const node = document.getElementById("result-tpl").content.cloneNode(true);
+        const f = (k) => node.querySelector(`[data-f="${k}"]`);
+        f("when").textContent = new Date(data.datetime).toLocaleString();
+        for (let i = 1; i <= 5; i++) {
+          const li = document.createElement("li");
+          li.textContent = data[`nameoftrend${i}`];   // textContent: trend text is untrusted
+          f("list").appendChild(li);
+        }
+        f("ip").textContent = data.ip_address;
+        f("json").textContent = JSON.stringify(data, null, 2);
+        results.replaceChildren(node);
+      } catch (err) {
+        results.innerHTML = "";
+        const p = document.createElement("p");
+        p.className = "error";
+        p.textContent = "Scrape failed: " + err.message;
+        results.appendChild(p);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
