@@ -96,3 +96,7 @@ images/sample-run-screenshots.pdf   screenshots of an earlier run (Dec 2024)
 - Proxy authentication with a username and password is not supported. Use IP-whitelisted proxies.
 - The screenshots in `images/` come from the old parser, which wrongly showed post counts
   (for example "8,548 posts") instead of trend names. `src/parsing.py` fixes this.
+
+## Licence
+
+[MIT](LICENSE) © 2024–2026 Samarth Jaiswal
